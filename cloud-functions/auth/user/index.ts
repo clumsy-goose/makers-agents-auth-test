@@ -3,12 +3,10 @@
  * (used by the front end to rehydrate session state after a page refresh).
  *
  * Auth topology:
- *   /auth/* is NOT in middleware.js's matcher — the platform routes directly
- *   here, skipping the edge middleware. This function is therefore the ONLY
- *   auth gate on this path and must call requireAuth itself.
- *
- *   The verification implementation (node:crypto HMAC-SHA256) is byte-for-byte
- *   compatible with middleware.js's Web Crypto verifier; both share JWT_SECRET.
+ *   `/auth/*` are Cloud Functions, NOT Agent routes — the platform's
+ *   `agents.auth` gate does not cover them. This function is therefore the
+ *   only auth gate on this path and must verify the bearer JWT itself
+ *   (RS256, public key = JWT_PUBLIC_KEY).
  */
 
 import { requireAuth, AuthError, unauthorizedResponse } from '../../_jwt';

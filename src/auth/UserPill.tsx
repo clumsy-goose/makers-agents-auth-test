@@ -4,7 +4,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useT } from '../i18n';
-import { API, type AuthUser } from '../api';
+import { API, authHeaders, type AuthUser } from '../api';
 import styles from './UserPill.module.css';
 
 interface UserPillProps {
@@ -23,13 +23,13 @@ export default function UserPill({ user, onSignOut }: UserPillProps) {
   const [meta, setMeta] = useState<MeMeta>({ sub: user.id });
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  // Refresh exp on open (JWT is in an HttpOnly cookie, JS cannot decode it directly).
+  // Refresh exp on open (exp lives inside the JWT, so ask the server).
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(API.authUser, { credentials: 'include' });
+        const res = await fetch(API.authUser, { headers: authHeaders() });
         if (!res.ok || cancelled) return;
         const data = await res.json() as { user: AuthUser; exp?: number };
         if (!cancelled) setMeta({ sub: data.user.id, exp: data.exp });

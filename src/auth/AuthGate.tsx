@@ -30,7 +30,7 @@ type Phase = 'probing' | 'ready';
 interface AuthGateContextValue {
   /** null = guest; non-null = signed in. */
   user: AuthUser | null;
-  /** Sign out — clears the cookie, sets user to null, UI returns to guest state. */
+  /** Sign out — drops the stored JWT, sets user to null, UI returns to guest state. */
   signOut: () => Promise<void>;
   /** Open the login modal (called by user action or 401 fallback). */
   openSignIn: () => void;

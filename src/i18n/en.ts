@@ -1,11 +1,11 @@
 const en = {
   // Header
   "app.title": "Agents Login Auth Starter",
-  "app.subtitle": "EdgeOne Makers · Edge middleware + Cloud Functions + Agent two-layer auth",
+  "app.subtitle": "EdgeOne Makers · Platform JWT auth (verified at the edge) + Cloud Functions issuing RS256 tokens",
 
   // Empty state
   "empty.title": "Agents Login Auth Starter",
-  "empty.hint": "Sign in to start chatting. This demo shows how to protect Agent endpoints with JWT auth on EdgeOne Makers using middleware + Cloud Functions. The Agent itself ships with session memory and custom tools (weather, clothing, translation, text stats).",
+  "empty.hint": "Sign in to start chatting. This demo shows how to protect Agent endpoints with the Makers platform auth gate (agents.auth): Cloud Functions issue RS256 tokens, the edge control plane verifies them and injects makers-user-id, and the Agent just reads the verified identity. The Agent itself ships with session memory and custom tools (weather, clothing, translation, text stats).",
   "empty.features": "EdgeOne Store · Session Memory · Agent Tools",
 
   // Chat input
@@ -66,7 +66,7 @@ const en = {
   "auth.err.invalid_password": "Password must be 8 to 16 characters",
   "auth.err.bad_request": "Bad request",
   "auth.err.db_error": "Database unavailable, please retry",
-  "auth.err.server_misconfigured": "Server misconfigured: JWT_SECRET missing",
+  "auth.err.server_misconfigured": "Server misconfigured: JWT_PRIVATE_KEY / JWT_PUBLIC_KEY missing",
   "auth.err.auth_required": "Session expired, please sign in again",
   "auth.err.unknown": "Unknown error",
 
@@ -81,7 +81,7 @@ const en = {
   "pill.you": "Signed in",
   "pill.userId": "User ID",
   "pill.token": "JWT",
-  "pill.token.value": "HS256 · HttpOnly Cookie",
+  "pill.token.value": "RS256 · Authorization Bearer",
   "pill.expiresAt": "Expires at",
   "pill.signout": "Sign out",
 } as const;

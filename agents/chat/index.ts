@@ -20,16 +20,19 @@ import { run, Agent, OpenAIChatCompletionsModel, type Session } from '@openai/ag
 import { createLogger } from '../_logger';
 import { createTools } from '../_tools';
 import { sseResponse } from '../_sse';
-import { requireAuth, AuthError, unauthorizedResponse } from '../_jwt';
+import { requireUserId, AuthError, unauthorizedResponse } from '../_jwt';
 
 const logger = createLogger('chat');
 const DEFAULT_MODEL = '@makers/hy3-preview';
 
 export async function onRequest(context: any) {
 
-  let authPayload;
+  // The platform edge control plane already verified the RS256 JWT and wrote
+  // `sub` into the makers-user-id header — just read it (never trust a
+  // client-sent value: the edge layer strips it).
+  let userId: string;
   try {
-    authPayload = requireAuth(context);
+    userId = requireUserId(context);
   } catch (e) {
     if (e instanceof AuthError) {
       logger.log(`[auth] reject: ${e.reason}`);
@@ -37,7 +40,7 @@ export async function onRequest(context: any) {
     }
     throw e;
   }
-  logger.log(`[auth] ok: user=${authPayload.username} (${authPayload.sub})`);
+  logger.log(`[auth] ok: user=${userId}`);
 
   const message = (context.request.body ?? {}).message as string | undefined;
   if (!message) {
@@ -69,7 +72,7 @@ export async function onRequest(context: any) {
     name: 'Assistant',
     instructions:
       'You are an EdgeOne Makers OpenAI Agents SDK (TypeScript) starter example: an out-of-the-box Agent template that helps developers quickly run through and validate platform capabilities.\n' +
-      'When introducing yourself, clearly say that you are a demo Agent built with OpenAI Agents SDK on EdgeOne Makers, designed to showcase four things for developers: login auth integration (edge middleware + Cloud Functions + Agent self-verify), custom tools, streaming responses, and session memory.\n' +
+      'When introducing yourself, clearly say that you are a demo Agent built with OpenAI Agents SDK on EdgeOne Makers, designed to showcase four things for developers: login auth integration (platform JWT auth at the edge + Cloud Functions issuing RS256 tokens), custom tools, streaming responses, and session memory.\n' +
       'Use the four custom tools when they help you answer the user concretely. Otherwise answer directly and keep the response brief.',
     tools: createTools(),
     model: model,
@@ -98,16 +101,15 @@ export async function onRequest(context: any) {
       yield {
         event: 'auth_ok',
         data: {
-          layer: 'agent',
-          sub: authPayload.sub,
-          username: authPayload.username,
+          layer: 'platform',
+          userId,
           ts: Date.now(),
         },
       };
 
       const sessionAgent = new Agent({
         name: agent.name,
-        instructions: `${agent.instructions}\n\nCurrently signed-in user: ${authPayload.username} (id=${authPayload.sub}).`,
+        instructions: `${agent.instructions}\n\nCurrently signed-in user id: ${userId}.`,
         tools: agent.tools,
         model: agent.model,
       });

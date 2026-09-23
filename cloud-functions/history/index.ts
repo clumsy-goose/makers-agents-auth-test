@@ -101,9 +101,11 @@ function contentToText(content: unknown): string {
 // ── Handler ─────────────────────────────────────────────────
 
 export async function onRequestPost(context: any): Promise<Response> {
-  // Defense in depth: cf must verify the JWT independently of the middleware.
+  // /history is a Cloud Function, not an Agent route — the platform's
+  // `agents.auth` gate does not cover it, so verify the bearer JWT here.
+  let auth;
   try {
-    requireAuth(context);
+    auth = requireAuth(context);
   } catch (e) {
     if (e instanceof AuthError) {
       logger.log(`[auth] reject: ${e.reason}`);
@@ -111,6 +113,7 @@ export async function onRequestPost(context: any): Promise<Response> {
     }
     throw e;
   }
+  logger.log(`[auth] ok: user=${auth.username} (${auth.sub})`);
 
   const requestStartTime = Date.now();
   logger.log(`[history] start: ${new Date(requestStartTime).toISOString()}`);

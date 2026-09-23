@@ -4,13 +4,19 @@
  *
  * Runtime: Node 20 (cloud-functions/nodejs)
  *
+ * Signs an RS256 JWT (private key = JWT_PRIVATE_KEY) and returns it in the
+ * response body. The client stores it and calls protected routes with
+ * `Authorization: Bearer <jwt>` — the platform edge control plane verifies the
+ * signature for Agent routes and injects `makers-user-id`; Cloud Functions
+ * verify with the matching public key (JWT_PUBLIC_KEY).
+ *
  * Failure modes are blurred together: every wrong-username / wrong-password
  * outcome returns the same 401 `invalid_credentials`, never reveals whether
  * the username exists.
  */
 
 import bcrypt from 'bcryptjs';
-import { signJwt, serializeCookie, JWT_TTL_SECONDS } from '../../_jwt';
+import { signJwt, JWT_TTL_SECONDS } from '../../_jwt';
 import { findUserByUsername } from '../../_db';
 import { validateUsername, validatePassword } from '../../_validate';
 
@@ -25,9 +31,9 @@ function jsonResponse(data: unknown, status = 200, extraHeaders: Record<string, 
 
 export async function onRequestPost(context: any): Promise<Response> {
   const env = (context.env ?? {}) as Record<string, string | undefined>;
-  const secret = env.JWT_SECRET;
-  if (!secret) {
-    return jsonResponse({ error: 'server_misconfigured', reason: 'JWT_SECRET missing' }, 500);
+  const privateKey = env.JWT_PRIVATE_KEY;
+  if (!privateKey) {
+    return jsonResponse({ error: 'server_misconfigured', reason: 'JWT_PRIVATE_KEY missing' }, 500);
   }
 
   let body: any;
@@ -68,21 +74,12 @@ export async function onRequestPost(context: any): Promise<Response> {
     return jsonResponse({ error: 'invalid_credentials' }, 401);
   }
 
-  const token = signJwt({ sub: user.id, username: user.username }, secret);
-  const cookie = serializeCookie('jwt_token', token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'Lax',
-    path: '/',
-    maxAge: JWT_TTL_SECONDS,
-  });
+  const token = signJwt({ sub: user.id, username: user.username }, privateKey);
 
-  return jsonResponse(
-    {
-      ok: true,
-      user: { id: user.id, username: user.username },
-    },
-    200,
-    { 'Set-Cookie': cookie },
-  );
+  return jsonResponse({
+    ok: true,
+    token,
+    user: { id: user.id, username: user.username },
+    expiresIn: JWT_TTL_SECONDS,
+  });
 }

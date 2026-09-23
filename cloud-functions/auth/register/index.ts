@@ -7,12 +7,13 @@
  * Flow:
  *   1. Look up `users` via @neondatabase/serverless tag-template SQL
  *   2. If username already taken → 409
- *   3. bcrypt hash + INSERT + node:crypto signs JWT
- *   4. Returns 200 with Set-Cookie HttpOnly Secure SameSite=Lax
+ *   3. bcrypt hash + INSERT + node:crypto signs an RS256 JWT
+ *   4. Returns 200 with `{ token, user }` — the client sends it back as
+ *      `Authorization: Bearer <jwt>` (platform auth reads that header)
  */
 
 import bcrypt from 'bcryptjs';
-import { signJwt, serializeCookie, JWT_TTL_SECONDS } from '../../_jwt';
+import { signJwt, JWT_TTL_SECONDS } from '../../_jwt';
 import { findUserByUsername, createUser } from '../../_db';
 import { validateUsername, validatePassword } from '../../_validate';
 
@@ -30,9 +31,9 @@ function jsonResponse(data: unknown, status = 200, extraHeaders: Record<string, 
 
 export async function onRequestPost(context: any): Promise<Response> {
   const env = (context.env ?? {}) as Record<string, string | undefined>;
-  const secret = env.JWT_SECRET;
-  if (!secret) {
-    return jsonResponse({ error: 'server_misconfigured', reason: 'JWT_SECRET missing' }, 500);
+  const privateKey = env.JWT_PRIVATE_KEY;
+  if (!privateKey) {
+    return jsonResponse({ error: 'server_misconfigured', reason: 'JWT_PRIVATE_KEY missing' }, 500);
   }
 
   let body: any;
@@ -70,21 +71,12 @@ export async function onRequestPost(context: any): Promise<Response> {
     return jsonResponse({ error: 'register_failed', reason: (e as Error).message }, 500);
   }
 
-  const token = signJwt({ sub: user.id, username: user.username }, secret);
-  const cookie = serializeCookie('jwt_token', token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'Lax',
-    path: '/',
-    maxAge: JWT_TTL_SECONDS,
-  });
+  const token = signJwt({ sub: user.id, username: user.username }, privateKey);
 
-  return jsonResponse(
-    {
-      ok: true,
-      user: { id: user.id, username: user.username },
-    },
-    200,
-    { 'Set-Cookie': cookie },
-  );
+  return jsonResponse({
+    ok: true,
+    token,
+    user: { id: user.id, username: user.username },
+    expiresIn: JWT_TTL_SECONDS,
+  });
 }

@@ -1,11 +1,11 @@
 const zh = {
   // Header
   "app.title": "Agents Login Auth Starter",
-  "app.subtitle": "EdgeOne Makers · 边缘中间件 + Cloud Functions + Agent 双层鉴权",
+  "app.subtitle": "EdgeOne Makers · 平台 JWT 鉴权(边缘中控验签)+ Cloud Functions 签发",
 
   // Empty state
   "empty.title": "Agent 登录鉴权集成",
-  "empty.hint": "登录后即可对话。本 Demo 演示如何用 EdgeOne Makers 的中间件 + Cloud Functions 给 Agent 接口加上 JWT 鉴权,Agent 本身具备会话记忆与自定义工具(天气、穿衣、翻译、文本统计)。",
+  "empty.hint": "登录后即可对话。本 Demo 演示如何用 EdgeOne Makers 的平台鉴权(agents.auth)给 Agent 接口加上 JWT 鉴权:Cloud Functions 签发 RS256 Token,边缘中控验签后注入 makers-user-id,Agent 直接读取已验证身份。Agent 本身具备会话记忆与自定义工具(天气、穿衣、翻译、文本统计)。",
   "empty.features": "EdgeOne Store · 会话记忆 · Agent 工具",
 
   // Chat input
@@ -66,7 +66,7 @@ const zh = {
   "auth.err.invalid_password": "密码长度需在 8-16 之间",
   "auth.err.bad_request": "请求格式错误",
   "auth.err.db_error": "数据库暂不可达,请稍后重试",
-  "auth.err.server_misconfigured": "服务端未配置 JWT_SECRET",
+  "auth.err.server_misconfigured": "服务端未配置 JWT_PRIVATE_KEY / JWT_PUBLIC_KEY",
   "auth.err.auth_required": "会话已失效,请重新登录",
   "auth.err.unknown": "未知错误",
 
@@ -81,7 +81,7 @@ const zh = {
   "pill.you": "已登录",
   "pill.userId": "用户 ID",
   "pill.token": "JWT",
-  "pill.token.value": "HS256 · HttpOnly Cookie",
+  "pill.token.value": "RS256 · Authorization Bearer",
   "pill.expiresAt": "过期时间",
   "pill.signout": "退出登录",
 } as const;

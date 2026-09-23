@@ -1,25 +1,20 @@
 /**
- * POST /auth/logout — clear cookie
+ * POST /auth/logout — stateless sign-out
  *
- * No JWT required: even with an expired or forged token we are happy to
- * overwrite the cookie with Max-Age=0 (otherwise an expired token would
- * lock the user out of logging out, which is silly).
+ * The JWT now lives in browser storage (it must be readable by JS so it can be
+ * sent as `Authorization: Bearer <jwt>`), so there is no server-side session
+ * and no cookie to clear: the client just drops the token.
+ *
+ * This endpoint is kept so the frontend has one place to call on sign-out
+ * (and so a future token blacklist has an insertion point). It requires no
+ * token — an expired or missing one must never block signing out.
  */
-
-import { serializeCookie } from '../../_jwt';
 
 const JSON_HEADERS = { 'Content-Type': 'application/json; charset=UTF-8' } as const;
 
 export async function onRequestPost(_context: any): Promise<Response> {
-  const cookie = serializeCookie('jwt_token', '', {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'Lax',
-    path: '/',
-    maxAge: 0,
-  });
   return new Response(JSON.stringify({ ok: true }), {
     status: 200,
-    headers: { ...JSON_HEADERS, 'Set-Cookie': cookie },
+    headers: JSON_HEADERS,
   });
 }

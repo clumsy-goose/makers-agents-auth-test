@@ -16,18 +16,21 @@
  */
 
 import { createLogger } from '../_logger';
-import { requireAuth, AuthError, unauthorizedResponse } from '../_jwt';
+import { requireUserId, AuthError, unauthorizedResponse } from '../_jwt';
 
 const logger = createLogger('stop');
 
 export async function onRequest(context: any) {
-  // Defense in depth: like /chat, this entry must verify the JWT itself.
+  // Verified by the platform edge layer (agents.auth) — read the injected
+  // makers-user-id header instead of verifying the token locally.
+  let userId: string;
   try {
-    requireAuth(context);
+    userId = requireUserId(context);
   } catch (e) {
     if (e instanceof AuthError) return unauthorizedResponse(e.reason);
     throw e;
   }
+  logger.log(`[auth] ok: user=${userId}`);
 
   const { request } = context;
   const conversationId = request?.body?.conversation_id as string | undefined;

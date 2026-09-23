@@ -10,6 +10,10 @@
  *   cloud-functions/auth/user           → GET  /auth/user
  *   cloud-functions/auth/logout         → POST /auth/logout
  *
+ * Protected routes (/chat, /stop are Agent routes behind the platform's
+ * `agents.auth` gate; /history, /auth/user verify the same token in the
+ * Cloud Function) all expect `Authorization: Bearer <jwt>` — see authHeaders().
+ *
  * This file defines all API paths and request wrappers.
  */
 
@@ -32,6 +36,47 @@ export interface AuthUser {
   username: string;
 }
 
+/**
+ * Token storage
+ * -------------
+ * The platform auth gate (edgeone.json → agents.auth) only reads the
+ * `Authorization: Bearer <jwt>` header — it never looks at cookies — so the
+ * token has to be reachable from JS. It is kept in localStorage and attached
+ * to every protected call. (Trade-off vs. the previous HttpOnly cookie: an XSS
+ * on this origin could read the token, so keep dependencies tight and never
+ * render untrusted HTML.)
+ */
+const TOKEN_KEY = 'makers.auth.token';
+
+function readStoredToken(): string | null {
+  try {
+    return window.localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+let token: string | null = readStoredToken();
+
+export function getToken(): string | null {
+  return token;
+}
+
+export function setToken(next: string | null): void {
+  token = next;
+  try {
+    if (next) window.localStorage.setItem(TOKEN_KEY, next);
+    else window.localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    /* storage unavailable — keep the in-memory copy only */
+  }
+}
+
+/** Build request headers with the bearer token attached (when present). */
+export function authHeaders(init: Record<string, string> = {}): Record<string, string> {
+  return token ? { ...init, Authorization: `Bearer ${token}` } : { ...init };
+}
+
 /** Thrown on 401 so UI layer can react (typically: open the login modal). */
 export class AuthRequiredError extends Error {
   constructor() {
@@ -42,6 +87,9 @@ export class AuthRequiredError extends Error {
 
 /** Dispatch the global 401 signal — AuthGate listens for this to open the modal. */
 function dispatchAuthRequired(): void {
+  // A 401 means the token is gone, expired, or failed verification — drop it
+  // so we stop replaying a dead credential on every retry.
+  setToken(null);
   window.dispatchEvent(new CustomEvent('eo:auth-required'));
 }
 
@@ -54,19 +102,23 @@ function check401<T extends Response>(res: T): T {
   return res;
 }
 
+/** Persist the token returned by /auth/login or /auth/register. */
+function consumeAuthResponse(data: { token?: string; user?: AuthUser }): AuthUser {
+  if (data?.token) setToken(data.token);
+  return data.user as AuthUser;
+}
+
 export async function login(username: string, password: string): Promise<AuthUser> {
   const res = await fetch(API.authLogin, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
-    credentials: 'include',
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data?.error || `login_failed_${res.status}`);
   }
-  const data = await res.json() as { user: AuthUser };
-  return data.user;
+  return consumeAuthResponse(await res.json() as { token?: string; user?: AuthUser });
 }
 
 export async function register(username: string, password: string): Promise<AuthUser> {
@@ -74,21 +126,23 @@ export async function register(username: string, password: string): Promise<Auth
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
-    credentials: 'include',
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
     throw new Error(data?.error || `register_failed_${res.status}`);
   }
-  const data = await res.json() as { user: AuthUser };
-  return data.user;
+  return consumeAuthResponse(await res.json() as { token?: string; user?: AuthUser });
 }
 
 /** Probe the current session — returns null on failure so the UI can render the guest state. */
 export async function fetchUser(): Promise<AuthUser | null> {
+  if (!token) return null;
   try {
-    const res = await fetch(API.authUser, { credentials: 'include' });
-    if (!res.ok) return null;
+    const res = await fetch(API.authUser, { headers: authHeaders() });
+    if (!res.ok) {
+      if (res.status === 401) setToken(null);
+      return null;
+    }
     const data = await res.json() as { user?: AuthUser };
     return data.user ?? null;
   } catch {
@@ -96,10 +150,13 @@ export async function fetchUser(): Promise<AuthUser | null> {
   }
 }
 
+/** Drop the token locally; /auth/logout is stateless and just acknowledges. */
 export async function logout(): Promise<void> {
+  const previous = token;
+  setToken(null);
   await fetch(API.authLogout, {
     method: 'POST',
-    credentials: 'include',
+    headers: previous ? { Authorization: `Bearer ${previous}` } : {},
   }).catch(() => undefined);
 }
 
@@ -135,11 +192,8 @@ export async function fetchConversationHistory(conversationId: string): Promise<
     try {
       const res = await fetch(API.history, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ conversation_id: conversationId }),
-        credentials: 'include',
       });
 
       // 401 = session expired, handle uniformly.
@@ -194,9 +248,7 @@ export function sendMessageStream(
 
   (async () => {
     try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
+      const headers = authHeaders({ 'Content-Type': 'application/json' });
       if (conversationId) {
         headers['makers-conversation-id'] = conversationId;
       }
@@ -206,7 +258,6 @@ export function sendMessageStream(
         headers,
         body: JSON.stringify({ message }),
         signal: ctrl.signal,
-        credentials: 'include',
       });
 
       if (res.status === 401) {
@@ -339,9 +390,8 @@ export async function stopAgent(conversationId?: string): Promise<boolean> {
   try {
     const res = await fetch(API.chatStop, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ conversation_id: conversationId }),
-      credentials: 'include',
     });
     return res.ok;
   } catch {
