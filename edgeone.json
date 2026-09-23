@@ -16,7 +16,7 @@
       "type": "jwt",
       "algorithm": "RS256",
       "verificationKeys": [
-        "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnM2a8GFS0+vAlGYh7R6g\n0XP6w9myk+65wXLGcC3Fqfrs0fuCD/fFlMsrjaatnsHPYGnPJ695u+eA1ZfCgpLT\nzSN9Vcnu65EGPY6igxxZZz3cbn1h6zlJU5a7T8U6sKOq6NbllUAzQTrdQd1M4qzd\nLtwpnttjCyAi52mbzT2AVoVCQAUbIkLvMQbox2zZr+kseB1RVCSc5ZdAlMLqPwCi\nHt/xDrqpMwEp1dZdqi35/obbyCYLYFhutgXxYfP3Z4w4AF5GlHF9yBwLvvziiNVj\npG+rA0ucPApxBrHxRaDFNEJyWKnf4okpO2aOnJgbxKjmf/35jMnF3Ick+Wk4fpKf\nmQIDAQAB\n-----END PUBLIC KEY-----"
+        "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA1+tqzz8H5FK9tUaHO3RE\nV2cMPy7aEHamzzrVMFIWqS4WI8zNlmEYgWWEW6UcPTttTNMLM6wS0CFhqsBhgnDq\n2jjb9IhVHWreXXC7Fh8dsaQaWaPCzX5+nNJurrveAHNtf278DhnBC5cx8e2eX5QJ\nVNDvamO97r21jbpsfGJ8mmFqLq7H5CWuFR86xa/7UXsqk5yukZ9rkOINE6byyBAi\n6qDDQ/9MP8kGHHOkNerIMwbfhpA8W7bSbd8LLob8U+wnGVLi0Gvmnyzkp1thXpvt\nWuAUHPQzj7Y3/4kg+ZgUgSMQFHzCgHxRHtMZq0z0ze85PlUshqhtW7HldEEUwBJ8\nHQIDAQAB\n-----END PUBLIC KEY-----"
       ]
     }
   }
