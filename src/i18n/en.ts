@@ -5,7 +5,7 @@ const en = {
 
   // Empty state
   "empty.title": "Agents Login Auth Starter",
-  "empty.hint": "Sign in to start chatting. This demo shows how to protect Agent endpoints with the Makers platform auth gate (agents.auth): Cloud Functions issue RS256 tokens, the edge control plane verifies them and injects makers-user-id, and the Agent just reads the verified identity. The Agent itself ships with session memory and custom tools (weather, clothing, translation, text stats).",
+  "empty.hint": "This demo shows how to use EdgeOne Makers' platform auth capability to add JWT authentication to Agent endpoints.",
   "empty.features": "EdgeOne Store · Session Memory · Agent Tools",
 
   // Chat input

@@ -5,7 +5,7 @@ const zh = {
 
   // Empty state
   "empty.title": "Agent 登录鉴权集成",
-  "empty.hint": "登录后即可对话。本 Demo 演示如何用 EdgeOne Makers 的平台鉴权(agents.auth)给 Agent 接口加上 JWT 鉴权:Cloud Functions 签发 RS256 Token,边缘中控验签后注入 makers-user-id,Agent 直接读取已验证身份。Agent 本身具备会话记忆与自定义工具(天气、穿衣、翻译、文本统计)。",
+  "empty.hint": "本 Demo 演示如何使用 EdgeOne Makers 的平台鉴权能力，为 Agent 接口接入 JWT 鉴权。",
   "empty.features": "EdgeOne Store · 会话记忆 · Agent 工具",
 
   // Chat input
